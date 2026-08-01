@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>HomeStock</title>
+<style>
+  :root{
+    --bg:#FAFAF7; --panel:#FFFFFF; --ink:#20241F; --muted:#7C8079;
+    --line:#EAE8E1; --pine:#2F6E4F; --pine-d:#265B41;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    background:var(--bg); color:var(--ink); -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:720px; margin:0 auto; padding:22px 18px 60px}
+  svg{display:block}
+
+  .head{display:flex; justify-content:space-between; align-items:flex-start; gap:16px; margin-bottom:20px}
+  .brand{display:flex; align-items:center; gap:13px}
+  .mark{display:grid; place-items:center; width:44px; height:44px; border-radius:13px;
+    background:var(--pine); color:#fff; box-shadow:0 4px 14px rgba(47,110,79,.28)}
+  .title{font-family:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;
+    font-size:26px; font-weight:700; margin:0; letter-spacing:-.4px}
+  .sub{margin:1px 0 0; font-size:13px; color:var(--muted)}
+  .stats{display:flex; gap:8px}
+  .stat{background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:7px 13px; text-align:center; min-width:62px}
+  .stat b{display:block; font-size:19px; line-height:1; font-weight:700}
+  .stat span{font-size:11px; color:var(--muted)}
+  .stat.low b{color:#C2691E}
+
+  .tabs{display:flex; gap:6px; background:#F1F0EA; padding:5px; border-radius:14px; margin-bottom:20px}
+  .tab{flex:1; display:flex; align-items:center; justify-content:center; gap:7px;
+    border:0; background:transparent; color:var(--muted); font-size:14.5px; font-weight:600;
+    padding:10px; border-radius:10px; cursor:pointer; transition:.15s}
+  .tab.on{background:var(--panel); color:var(--ink); box-shadow:0 1px 3px rgba(0,0,0,.07)}
+
+  .add{background:var(--panel); border:1px solid var(--line); border-radius:16px; padding:14px; margin-bottom:22px}
+  .input{width:100%; border:1px solid var(--line); border-radius:11px; padding:12px 14px;
+    font-size:15px; color:var(--ink); background:#FCFCFA; outline:none; transition:.15s}
+  .input:focus{border-color:var(--pine); box-shadow:0 0 0 3px rgba(47,110,79,.12)}
+  .add-row{display:flex; gap:9px; margin-top:9px}
+  .select{flex:1; border:1px solid var(--line); border-radius:11px; padding:11px 12px;
+    font-size:14.5px; background:#FCFCFA; color:var(--ink); cursor:pointer; outline:none}
+  .select:focus{border-color:var(--pine)}
+
+  .primary{display:inline-flex; align-items:center; gap:6px; border:0; cursor:pointer;
+    background:var(--pine); color:#fff; font-size:15px; font-weight:600; padding:11px 18px;
+    border-radius:11px; transition:.15s; white-space:nowrap}
+  .primary:hover:not(:disabled){background:var(--pine-d)}
+  .primary:disabled{opacity:.45; cursor:not-allowed}
+  .primary.big{padding:13px 22px; font-size:15.5px; margin-top:14px}
+
+  .section{margin-bottom:24px}
+  .sec-head{display:flex; align-items:center; gap:10px; margin-bottom:11px}
+  .chip{display:inline-flex; align-items:center; gap:7px; padding:6px 12px; border-radius:999px; font-size:13.5px; font-weight:600}
+  .count{font-size:13px; color:var(--muted); font-weight:600}
+  .list{list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:8px}
+  .item{display:flex; align-items:center; gap:12px; background:var(--panel);
+    border:1px solid var(--line); border-radius:13px; padding:11px 13px}
+  .item.out{opacity:.6}
+  .name{flex:1; font-size:15px; font-weight:500; display:flex; align-items:center; gap:8px}
+  .tag{font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:.4px;
+    padding:2px 7px; border-radius:6px; background:#F3E4E4; color:#B23B3B}
+  .tag.low{background:#FBEEDD; color:#B5731C}
+  .stepper{display:flex; align-items:center; gap:2px; background:#F4F3EE; border-radius:10px; padding:3px}
+  .stepper button{width:30px; height:30px; display:grid; place-items:center; border:0;
+    background:#fff; color:var(--ink); border-radius:8px; cursor:pointer; transition:.12s; box-shadow:0 1px 2px rgba(0,0,0,.05)}
+  .stepper button:hover{background:var(--pine); color:#fff}
+  .num{min-width:30px; text-align:center; font-size:15.5px; font-weight:700; font-variant-numeric:tabular-nums}
+  .del{border:0; background:transparent; color:#C3BFB6; cursor:pointer; padding:6px; border-radius:8px; transition:.12s}
+  .del:hover{color:#C4453B; background:#FBEDEC}
+
+  .empty{text-align:center; padding:48px 20px; color:var(--muted)}
+  .empty p{font-size:16px; font-weight:600; color:var(--ink); margin:14px 0 4px}
+  .empty span{font-size:14px}
+
+  .recipe-intro{background:var(--panel); border:1px solid var(--line); border-radius:16px; padding:20px; margin-bottom:20px}
+  .recipe-intro p{margin:0 0 4px; font-size:15px; line-height:1.5}
+  .have{font-size:13.5px; color:var(--pine); font-weight:600; margin-top:8px}
+  .have.muted{color:var(--muted); font-weight:500}
+  .error{display:flex; align-items:center; gap:8px; background:#FBEDEC; color:#B23B3B;
+    border-radius:12px; padding:12px 15px; font-size:14px; margin-bottom:18px}
+
+  .recipes{display:flex; flex-direction:column; gap:14px}
+  .card{background:var(--panel); border:1px solid var(--line); border-radius:16px; padding:17px 18px}
+  .card-top{display:flex; justify-content:space-between; align-items:flex-start; gap:12px}
+  .card h3{margin:0; font-size:17.5px; font-weight:700; letter-spacing:-.2px}
+  .stars{display:inline-flex; gap:1px; flex-shrink:0; margin-top:2px}
+  .desc{margin:8px 0 12px; font-size:14px; color:#54574F; line-height:1.5}
+  .ings{margin:6px 0; font-size:13.5px; color:#54574F; line-height:1.5}
+  .ings .lbl{display:inline-block; font-size:10.5px; font-weight:700; text-transform:uppercase;
+    letter-spacing:.4px; padding:2px 7px; border-radius:6px; margin-right:7px}
+  .ings .lbl.yes{background:#EAF4EC; color:var(--pine)}
+  .ings .lbl.no{background:#FBF0E7; color:#B06A2E}
+  .rlink{display:inline-flex; align-items:center; gap:5px; margin-top:12px; font-size:13.5px; font-weight:600; color:var(--pine); text-decoration:none}
+  .rlink:hover{text-decoration:underline}
+
+  .spin{animation:spin 1s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .hidden{display:none}
+  @media (max-width:520px){ .stats{flex-direction:column; gap:6px} .title{font-size:23px} }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="head">
+    <div class="brand">
+      <span class="mark" id="logo"></span>
+      <div>
+        <h1 class="title">HomeStock</h1>
+        <p class="sub">Everything the house needs, in one place</p>
+      </div>
+    </div>
+    <div class="stats" id="stats"></div>
+  </header>
+
+  <nav class="tabs">
+    <button class="tab on" data-tab="inventory" id="tab-inv"></button>
+    <button class="tab" data-tab="recipes" id="tab-rec"></button>
+  </nav>
+
+  <main id="view-inventory">
+    <div class="add">
+      <input class="input" id="itemName" placeholder="Add an item… (e.g. Paper towels)" />
+      <div class="add-row">
+        <select class="select" id="itemCat"></select>
+        <button class="primary" id="addBtn"></button>
+      </div>
+    </div>
+    <div id="inventoryList"></div>
+  </main>
+
+  <main id="view-recipes" class="hidden">
+    <div class="recipe-intro">
+      <p>I'll search the web for well-rated meals you can make from your <b>Groceries</b> list.</p>
+      <p class="have" id="haveLine"></p>
+      <button class="primary big" id="findBtn"></button>
+    </div>
+    <div id="recipeError"></div>
+    <div class="recipes" id="recipeList"></div>
+  </main>
+</div>
+
+<script>
+/* ---------- icons (inline, no dependencies) ---------- */
+function svg(paths, o){
+  o = o || {};
+  var size = o.size || 18, fill = o.fill || "none", stroke = o.stroke || "currentColor", sw = o.sw || 2;
+  return '<svg xmlns="http://www.w3.org/2000/svg" width="'+size+'" height="'+size+'" viewBox="0 0 24 24" fill="'+fill+'" stroke="'+stroke+'" stroke-width="'+sw+'" stroke-linecap="round" stroke-linejoin="round">'+paths+'</svg>';
+}
+var ICON = {
+  box:'<path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/>',
+  chef:'<path d="M17 21a1 1 0 0 0 1-1v-5.35c0-.457.316-.844.727-1.041a4 4 0 0 0-2.134-7.589 5 5 0 0 0-9.186 0 4 4 0 0 0-2.134 7.588c.411.198.727.585.727 1.041V20a1 1 0 0 0 1 1Z"/><path d="M6 17h12"/>',
+  plus:'<path d="M5 12h14"/><path d="M12 5v14"/>',
+  minus:'<path d="M5 12h14"/>',
+  trash:'<path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/>',
+  search:'<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>',
+  ext:'<path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>',
+  x:'<path d="M18 6 6 18"/><path d="m6 6 12 12"/>',
+  loader:'<path d="M21 12a9 9 0 1 1-6.219-8.56"/>',
+  utensils:'<path d="m16 2-4 4-4-4"/><path d="M7 2v20"/><path d="M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7"/>',
+  sparkles:'<path d="M9.94 15.5A2 2 0 0 0 8.5 14.06l-6.14-1.58a.5.5 0 0 1 0-.96L8.5 9.94A2 2 0 0 0 9.94 8.5l1.58-6.14a.5.5 0 0 1 .96 0L14.06 8.5A2 2 0 0 0 15.5 9.94l6.14 1.58a.5.5 0 0 1 0 .96L15.5 14.06a2 2 0 0 0-1.44 1.44l-1.58 6.14a.5.5 0 0 1-.96 0Z"/>',
+  droplet:'<path d="M12 22a7 7 0 0 0 7-7c0-2-1-3.9-3-5.5s-3.5-4-4-6.5c-.5 2.5-2 4.9-4 6.5C6 11.1 5 13 5 15a7 7 0 0 0 7 7z"/>',
+  basket:'<path d="M2 11h20"/><path d="m5 11 4-7"/><path d="m19 11-4-7"/><path d="m3.5 11 1.6 7.4a2 2 0 0 0 2 1.6h9.8a2 2 0 0 0 2-1.6l1.6-7.4"/><path d="m9 11 1 8"/><path d="m15 11-1 8"/>',
+  paw:'<circle cx="11" cy="4" r="2"/><circle cx="18" cy="8" r="2"/><circle cx="4.5" cy="9.5" r="2"/><circle cx="20" cy="16" r="2"/><path d="M9 10a5 5 0 0 1 5 5v3.5a3.5 3.5 0 0 1-6.84 1.05Q6.52 17.5 4.46 16.85A3.5 3.5 0 0 1 5.5 10Z"/>'
+};
+function star(filled){
+  var c = filled ? "#E8A93B" : "#D8D4CC";
+  return '<svg width="15" height="15" viewBox="0 0 24 24" fill="'+(filled?c:"none")+'" stroke="'+c+'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>';
+}
+
+/* ---------- data ---------- */
+var CATEGORIES = [
+  {key:"Groceries",  label:"Groceries",         icon:"basket",   tint:"#EAF4EC", ink:"#2F6E4F"},
+  {key:"Cleaning",   label:"Cleaning supplies", icon:"sparkles", tint:"#EAF1F7", ink:"#2E5E86"},
+  {key:"Toiletries", label:"Toiletries",        icon:"droplet",  tint:"#F1ECF7", ink:"#6A4E93"},
+  {key:"Pet",        label:"Pet supplies",      icon:"paw",      tint:"#FBF0E7", ink:"#B06A2E"}
+];
+function catInfo(k){ for(var i=0;i<CATEGORIES.length;i++){ if(CATEGORIES[i].key===k) return CATEGORIES[i]; } return CATEGORIES[0]; }
+
+var KEY = "homestock.items";
+var items = load();
+function load(){ try{ return JSON.parse(localStorage.getItem(KEY)) || []; }catch(e){ return []; } }
+function save(){ try{ localStorage.setItem(KEY, JSON.stringify(items)); }catch(e){} }
+
+function esc(s){ return String(s).replace(/[&<>"']/g, function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]; }); }
+
+/* ---------- one-time chrome ---------- */
+document.getElementById("logo").innerHTML = svg(ICON.box, {size:22, sw:2.2});
+document.getElementById("tab-inv").innerHTML = svg(ICON.box, {size:17}) + " Inventory";
+document.getElementById("tab-rec").innerHTML = svg(ICON.chef, {size:17}) + " What can I cook?";
+document.getElementById("addBtn").innerHTML = svg(ICON.plus, {size:18}) + " Add";
+(function(){
+  var sel = document.getElementById("itemCat");
+  CATEGORIES.forEach(function(c){ var o=document.createElement("option"); o.value=c.key; o.textContent=c.label; sel.appendChild(o); });
+})();
+
+/* ---------- inventory render ---------- */
+function renderStats(){
+  var total = items.reduce(function(s,i){ return s+i.count; }, 0);
+  var low = items.filter(function(i){ return i.count>0 && i.count<=1; }).length;
+  var el = document.getElementById("stats");
+  if(total===0){ el.innerHTML=""; return; }
+  var h = '<div class="stat"><b>'+total+'</b><span>on hand</span></div>';
+  if(low>0) h += '<div class="stat low"><b>'+low+'</b><span>running low</span></div>';
+  el.innerHTML = h;
+}
+
+function renderInventory(){
+  var root = document.getElementById("inventoryList");
+  var html = "";
+  if(items.length===0){
+    html = '<div class="empty">'+svg(ICON.utensils,{size:30,sw:1.6})+
+      '<p>Nothing tracked yet.</p><span>Add your first item above to start building the list.</span></div>';
+    root.innerHTML = html; renderStats(); return;
+  }
+  CATEGORIES.forEach(function(c){
+    var list = items.filter(function(i){ return i.category===c.key; });
+    if(list.length===0) return;
+    html += '<section class="section"><div class="sec-head">'+
+      '<span class="chip" style="background:'+c.tint+';color:'+c.ink+'">'+svg(ICON[c.icon],{size:16})+' '+esc(c.label)+'</span>'+
+      '<span class="count">'+list.length+'</span></div><ul class="list">';
+    list.forEach(function(i){
+      var tag = i.count===0 ? '<span class="tag">out</span>' : (i.count===1 ? '<span class="tag low">low</span>' : '');
+      html += '<li class="item'+(i.count===0?' out':'')+'" data-id="'+i.id+'">'+
+        '<span class="name">'+esc(i.name)+' '+tag+'</span>'+
+        '<div class="stepper">'+
+          '<button data-act="dec" aria-label="one less">'+svg(ICON.minus,{size:16})+'</button>'+
+          '<span class="num">'+i.count+'</span>'+
+          '<button data-act="inc" aria-label="one more">'+svg(ICON.plus,{size:16})+'</button>'+
+        '</div>'+
+        '<button class="del" data-act="del" aria-label="remove item">'+svg(ICON.trash,{size:16})+'</button>'+
+      '</li>';
+    });
+    html += '</ul></section>';
+  });
+  root.innerHTML = html;
+  renderStats();
+}
+
+/* ---------- inventory actions ---------- */
+function addItem(){
+  var input = document.getElementById("itemName");
+  var name = input.value.trim();
+  if(!name) return;
+  var cat = document.getElementById("itemCat").value;
+  var existing = items.filter(function(i){ return i.name.toLowerCase()===name.toLowerCase() && i.category===cat; })[0];
+  if(existing){ existing.count += 1; }
+  else{ items.push({ id: Date.now()+"-"+Math.random().toString(36).slice(2,6), name:name, category:cat, count:1 }); }
+  input.value = ""; input.focus();
+  save(); renderInventory();
+}
+
+document.getElementById("addBtn").addEventListener("click", addItem);
+document.getElementById("itemName").addEventListener("keydown", function(e){ if(e.key==="Enter") addItem(); });
+
+document.getElementById("inventoryList").addEventListener("click", function(e){
+  var btn = e.target.closest("button[data-act]");
+  if(!btn) return;
+  var li = e.target.closest("li[data-id]");
+  var id = li.getAttribute("data-id");
+  var it = items.filter(function(i){ return i.id===id; })[0];
+  if(!it) return;
+  var act = btn.getAttribute("data-act");
+  if(act==="inc") it.count += 1;
+  else if(act==="dec") it.count = Math.max(0, it.count-1);
+  else if(act==="del") items = items.filter(function(i){ return i.id!==id; });
+  save(); renderInventory();
+});
+
+/* ---------- tabs ---------- */
+function setTab(t){
+  document.getElementById("tab-inv").classList.toggle("on", t==="inventory");
+  document.getElementById("tab-rec").classList.toggle("on", t==="recipes");
+  document.getElementById("view-inventory").classList.toggle("hidden", t!=="inventory");
+  document.getElementById("view-recipes").classList.toggle("hidden", t!=="recipes");
+  if(t==="recipes") renderRecipeIntro();
+}
+document.getElementById("tab-inv").addEventListener("click", function(){ setTab("inventory"); });
+document.getElementById("tab-rec").addEventListener("click", function(){ setTab("recipes"); });
+
+/* ---------- recipes ---------- */
+function groceries(){ return items.filter(function(i){ return i.category==="Groceries" && i.count>0; }); }
+
+function renderRecipeIntro(){
+  var g = groceries();
+  var line = document.getElementById("haveLine");
+  if(g.length>0){ line.className="have"; line.innerHTML = "Cooking with: " + esc(g.map(function(x){return x.name;}).join(", ")); }
+  else{ line.className="have muted"; line.textContent = "Add some grocery items first, then come back here."; }
+  var btn = document.getElementById("findBtn");
+  btn.disabled = g.length===0;
+  btn.innerHTML = svg(ICON.search,{size:18}) + " Find meals";
+}
+
+function renderStars(rating){
+  var full = Math.round(Number(rating)||0);
+  var h = '<span class="stars">';
+  for(var n=1;n<=5;n++) h += star(n<=full);
+  return h + '</span>';
+}
+
+function showRecipeError(msg){
+  document.getElementById("recipeError").innerHTML = '<div class="error">'+svg(ICON.x,{size:16})+' '+esc(msg)+'</div>';
+}
+
+function renderRecipes(recipes){
+  var root = document.getElementById("recipeList");
+  var html = "";
+  recipes.forEach(function(r){
+    html += '<article class="card"><div class="card-top"><h3>'+esc(r.name||"Untitled")+'</h3>'+renderStars(r.rating)+'</div>';
+    if(r.description) html += '<p class="desc">'+esc(r.description)+'</p>';
+    if(Array.isArray(r.have) && r.have.length) html += '<p class="ings"><span class="lbl yes">Have</span> '+esc(r.have.join(", "))+'</p>';
+    if(Array.isArray(r.need) && r.need.length) html += '<p class="ings"><span class="lbl no">Need</span> '+esc(r.need.join(", "))+'</p>';
+    if(r.url) html += '<a class="rlink" href="'+esc(r.url)+'" target="_blank" rel="noreferrer">'+esc(r.source||"View recipe")+' '+svg(ICON.ext,{size:14})+'</a>';
+    html += '</article>';
+  });
+  root.innerHTML = html;
+}
+
+document.getElementById("findBtn").addEventListener("click", async function(){
+  var g = groceries();
+  if(g.length===0) return;
+  var btn = document.getElementById("findBtn");
+  document.getElementById("recipeError").innerHTML = "";
+  document.getElementById("recipeList").innerHTML = "";
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spin">'+svg(ICON.loader,{size:18})+'</span> Searching…';
+  try{
+    var res = await fetch("/api/recipes", {
+      method:"POST",
+      headers:{ "Content-Type":"application/json" },
+      body: JSON.stringify({ ingredients: g.map(function(x){ return x.name; }) })
+    });
+    var data = await res.json();
+    if(!res.ok || data.error){ showRecipeError(data.error || "The recipe search didn't go through."); }
+    else if(!data.recipes || !data.recipes.length){ showRecipeError("No recipes came back. Try adding a few more ingredients."); }
+    else{ renderRecipes(data.recipes); }
+  }catch(e){
+    showRecipeError("Couldn't reach the recipe service. If you're testing locally, deploy to Vercel first.");
+  }finally{
+    btn.disabled = false;
+    btn.innerHTML = svg(ICON.search,{size:18}) + " Find meals";
+  }
+});
+
+/* ---------- go ---------- */
+renderInventory();
+</script>
+</body>
+</html>
