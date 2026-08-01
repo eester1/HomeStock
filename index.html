@@ -4,6 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>HomeStock</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
   :root{
     --bg:#FAFAF7; --panel:#FFFFFF; --ink:#20241F; --muted:#7C8079;
@@ -32,39 +33,62 @@
   .stat.low b{color:#C2691E}
 
   .tabs{display:flex; gap:6px; background:#F1F0EA; padding:5px; border-radius:14px; margin-bottom:20px}
-  .tab{flex:1; display:flex; align-items:center; justify-content:center; gap:7px;
-    border:0; background:transparent; color:var(--muted); font-size:14.5px; font-weight:600;
-    padding:10px; border-radius:10px; cursor:pointer; transition:.15s}
+  .tab{flex:1; display:flex; align-items:center; justify-content:center; gap:6px;
+    border:0; background:transparent; color:var(--muted); font-size:13.5px; font-weight:600;
+    padding:10px 6px; border-radius:10px; cursor:pointer; transition:.15s}
   .tab.on{background:var(--panel); color:var(--ink); box-shadow:0 1px 3px rgba(0,0,0,.07)}
 
-  .add{background:var(--panel); border:1px solid var(--line); border-radius:16px; padding:14px; margin-bottom:22px}
-  .input{width:100%; border:1px solid var(--line); border-radius:11px; padding:12px 14px;
+  .add{background:var(--panel); border:1px solid var(--line); border-radius:16px; padding:14px; margin-bottom:20px}
+  .input, .cinput{width:100%; border:1px solid var(--line); border-radius:11px; padding:12px 14px;
     font-size:15px; color:var(--ink); background:#FCFCFA; outline:none; transition:.15s}
-  .input:focus{border-color:var(--pine); box-shadow:0 0 0 3px rgba(47,110,79,.12)}
-  .add-row{display:flex; gap:9px; margin-top:9px}
-  .select{flex:1; border:1px solid var(--line); border-radius:11px; padding:11px 12px;
-    font-size:14.5px; background:#FCFCFA; color:var(--ink); cursor:pointer; outline:none}
-  .select:focus{border-color:var(--pine)}
+  .input:focus, .cinput:focus{border-color:var(--pine); box-shadow:0 0 0 3px rgba(47,110,79,.12)}
+  .fields{display:flex; gap:9px; margin-top:9px; flex-wrap:wrap}
+  .field{flex:1; min-width:120px; display:flex; flex-direction:column; gap:4px}
+  .field.min{flex:0 0 84px; min-width:74px}
+  .field label{font-size:11px; color:var(--muted); font-weight:600; padding-left:2px; text-transform:uppercase; letter-spacing:.4px}
+  .field .cinput{padding:10px 12px; font-size:14px}
+  .add-actions{display:flex; justify-content:flex-end; margin-top:11px}
 
   .primary{display:inline-flex; align-items:center; gap:6px; border:0; cursor:pointer;
     background:var(--pine); color:#fff; font-size:15px; font-weight:600; padding:11px 18px;
     border-radius:11px; transition:.15s; white-space:nowrap}
   .primary:hover:not(:disabled){background:var(--pine-d)}
   .primary:disabled{opacity:.45; cursor:not-allowed}
-  .primary.big{padding:13px 22px; font-size:15.5px; margin-top:14px}
+  .primary.big{padding:13px 22px; font-size:15.5px}
+  .ghost{display:inline-flex; align-items:center; gap:6px; border:1px solid var(--line); cursor:pointer;
+    background:var(--panel); color:var(--ink); font-size:14px; font-weight:600; padding:10px 15px; border-radius:11px; transition:.15s}
+  .ghost:hover:not(:disabled){border-color:var(--pine); color:var(--pine)}
+  .ghost:disabled{opacity:.45; cursor:not-allowed}
+
+  .controls{display:flex; gap:16px; align-items:center; flex-wrap:wrap; margin-bottom:18px}
+  .control{display:flex; align-items:center; gap:7px}
+  .control > span{font-size:12.5px; color:var(--muted); font-weight:600; text-transform:uppercase; letter-spacing:.4px}
+  .mini{border:1px solid var(--line); border-radius:10px; padding:8px 11px; font-size:14px;
+    background:var(--panel); color:var(--ink); cursor:pointer; outline:none}
+  .mini:focus{border-color:var(--pine)}
 
   .section{margin-bottom:24px}
   .sec-head{display:flex; align-items:center; gap:10px; margin-bottom:11px}
   .chip{display:inline-flex; align-items:center; gap:7px; padding:6px 12px; border-radius:999px; font-size:13.5px; font-weight:600}
+  .chip.neutral{background:#F1F0EA; color:#54574F}
   .count{font-size:13px; color:var(--muted); font-weight:600}
   .list{list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:8px}
-  .item{display:flex; align-items:center; gap:12px; background:var(--panel);
+  .item{display:flex; align-items:center; gap:12px; flex-wrap:wrap; background:var(--panel);
     border:1px solid var(--line); border-radius:13px; padding:11px 13px}
   .item.out{opacity:.6}
-  .name{flex:1; font-size:15px; font-weight:500; display:flex; align-items:center; gap:8px}
+  .item-main{flex:1 1 auto; min-width:140px; display:flex; flex-direction:column; gap:3px}
+  .name{font-size:15px; font-weight:500; display:flex; align-items:center; gap:8px}
   .tag{font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:.4px;
     padding:2px 7px; border-radius:6px; background:#F3E4E4; color:#B23B3B}
   .tag.low{background:#FBEEDD; color:#B5731C}
+  .meta{display:flex; gap:6px; flex-wrap:wrap}
+  .mchip{font-size:11px; font-weight:600; padding:2px 8px; border-radius:999px; background:#F4F3EE; color:#6B6F67}
+  .item-controls{display:flex; align-items:center; gap:10px; flex-shrink:0}
+  .min-box{display:flex; flex-direction:column; align-items:center; gap:2px}
+  .min-box label{font-size:9.5px; text-transform:uppercase; letter-spacing:.4px; color:var(--muted); font-weight:700}
+  .minput{width:46px; text-align:center; border:1px solid var(--line); border-radius:8px; padding:6px 4px;
+    font-size:14px; font-weight:600; background:#FCFCFA; color:var(--ink); outline:none}
+  .minput:focus{border-color:var(--pine)}
   .stepper{display:flex; align-items:center; gap:2px; background:#F4F3EE; border-radius:10px; padding:3px}
   .stepper button{width:30px; height:30px; display:grid; place-items:center; border:0;
     background:#fff; color:var(--ink); border-radius:8px; cursor:pointer; transition:.12s; box-shadow:0 1px 2px rgba(0,0,0,.05)}
@@ -76,6 +100,19 @@
   .empty{text-align:center; padding:48px 20px; color:var(--muted)}
   .empty p{font-size:16px; font-weight:600; color:var(--ink); margin:14px 0 4px}
   .empty span{font-size:14px}
+
+  .glist-head{display:flex; justify-content:space-between; align-items:flex-start; gap:14px; margin-bottom:16px; flex-wrap:wrap}
+  .glist-head h2{font-family:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif; font-size:22px; font-weight:700; margin:0; letter-spacing:-.3px}
+  .glist-actions{display:flex; gap:9px; margin-bottom:22px; flex-wrap:wrap}
+  .gstore{margin-bottom:26px}
+  .gstore .sec-head{margin-bottom:12px}
+  .gtype{margin:14px 0 8px}
+  .gtable{width:100%; border-collapse:collapse; background:var(--panel); border:1px solid var(--line); border-radius:12px; overflow:hidden}
+  .gtable th{font-size:11px; text-transform:uppercase; letter-spacing:.5px; color:var(--muted); text-align:left; font-weight:700; padding:9px 14px; background:#F7F6F1; border-bottom:1px solid var(--line)}
+  .gtable th:last-child{text-align:right}
+  .gtable td{padding:11px 14px; font-size:14.5px; border-bottom:1px solid var(--line)}
+  .gtable tr:last-child td{border-bottom:0}
+  .gtable td.need{text-align:right; width:70px; font-weight:700; font-variant-numeric:tabular-nums; color:var(--pine)}
 
   .recipe-intro{background:var(--panel); border:1px solid var(--line); border-radius:16px; padding:20px; margin-bottom:20px}
   .recipe-intro p{margin:0 0 4px; font-size:15px; line-height:1.5}
@@ -119,23 +156,71 @@
 
   <nav class="tabs">
     <button class="tab on" data-tab="inventory" id="tab-inv"></button>
+    <button class="tab" data-tab="grocery" id="tab-gro"></button>
     <button class="tab" data-tab="recipes" id="tab-rec"></button>
   </nav>
 
   <main id="view-inventory">
     <div class="add">
-      <input class="input" id="itemName" placeholder="Add an item… (e.g. Paper towels)" />
-      <div class="add-row">
-        <select class="select" id="itemCat"></select>
+      <input class="input" id="itemName" placeholder="Add an item… (e.g. Lemons)" />
+      <div class="fields">
+        <div class="field">
+          <label>Type</label>
+          <select class="cinput" id="itemType"></select>
+        </div>
+        <div class="field">
+          <label>Subtype</label>
+          <select class="cinput" id="itemSubtype"></select>
+        </div>
+        <div class="field">
+          <label>Store</label>
+          <select class="cinput" id="itemStore"></select>
+        </div>
+        <div class="field min">
+          <label>Min</label>
+          <input class="cinput" id="itemMin" type="number" min="0" value="1" />
+        </div>
+      </div>
+      <div class="add-actions">
         <button class="primary" id="addBtn"></button>
       </div>
     </div>
+
+    <div class="controls hidden" id="controls">
+      <div class="control">
+        <span>Group by</span>
+        <select class="mini" id="groupBy">
+          <option value="type">Type</option>
+          <option value="subtype">Subtype</option>
+          <option value="store">Store</option>
+        </select>
+      </div>
+      <div class="control">
+        <span>Store</span>
+        <select class="mini" id="storeFilter"></select>
+      </div>
+    </div>
+
     <div id="inventoryList"></div>
+  </main>
+
+  <main id="view-grocery" class="hidden">
+    <div class="glist-head">
+      <div>
+        <h2>Grocery list</h2>
+        <p class="sub">Everything below its minimum, and how many to buy.</p>
+      </div>
+    </div>
+    <div class="glist-actions">
+      <button class="primary" id="makeListBtn"></button>
+      <button class="ghost" id="exportBtn" disabled></button>
+    </div>
+    <div id="groceryList"></div>
   </main>
 
   <main id="view-recipes" class="hidden">
     <div class="recipe-intro">
-      <p>I'll search the web for well-rated meals you can make from your <b>Groceries</b> list.</p>
+      <p>I'll search the web for well-rated meals you can make from your <b>Groceries</b> items.</p>
       <p class="have" id="haveLine"></p>
       <button class="primary big" id="findBtn"></button>
     </div>
@@ -154,6 +239,9 @@ function svg(paths, o){
 var ICON = {
   box:'<path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/>',
   chef:'<path d="M17 21a1 1 0 0 0 1-1v-5.35c0-.457.316-.844.727-1.041a4 4 0 0 0-2.134-7.589 5 5 0 0 0-9.186 0 4 4 0 0 0-2.134 7.588c.411.198.727.585.727 1.041V20a1 1 0 0 0 1 1Z"/><path d="M6 17h12"/>',
+  cart:'<circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/>',
+  download:'<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/>',
+  check:'<path d="M20 6 9 17l-5-5"/>',
   plus:'<path d="M5 12h14"/><path d="M12 5v14"/>',
   minus:'<path d="M5 12h14"/>',
   trash:'<path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/>',
@@ -165,147 +253,447 @@ var ICON = {
   sparkles:'<path d="M9.94 15.5A2 2 0 0 0 8.5 14.06l-6.14-1.58a.5.5 0 0 1 0-.96L8.5 9.94A2 2 0 0 0 9.94 8.5l1.58-6.14a.5.5 0 0 1 .96 0L14.06 8.5A2 2 0 0 0 15.5 9.94l6.14 1.58a.5.5 0 0 1 0 .96L15.5 14.06a2 2 0 0 0-1.44 1.44l-1.58 6.14a.5.5 0 0 1-.96 0Z"/>',
   droplet:'<path d="M12 22a7 7 0 0 0 7-7c0-2-1-3.9-3-5.5s-3.5-4-4-6.5c-.5 2.5-2 4.9-4 6.5C6 11.1 5 13 5 15a7 7 0 0 0 7 7z"/>',
   basket:'<path d="M2 11h20"/><path d="m5 11 4-7"/><path d="m19 11-4-7"/><path d="m3.5 11 1.6 7.4a2 2 0 0 0 2 1.6h9.8a2 2 0 0 0 2-1.6l1.6-7.4"/><path d="m9 11 1 8"/><path d="m15 11-1 8"/>',
-  paw:'<circle cx="11" cy="4" r="2"/><circle cx="18" cy="8" r="2"/><circle cx="4.5" cy="9.5" r="2"/><circle cx="20" cy="16" r="2"/><path d="M9 10a5 5 0 0 1 5 5v3.5a3.5 3.5 0 0 1-6.84 1.05Q6.52 17.5 4.46 16.85A3.5 3.5 0 0 1 5.5 10Z"/>'
+  paw:'<circle cx="11" cy="4" r="2"/><circle cx="18" cy="8" r="2"/><circle cx="4.5" cy="9.5" r="2"/><circle cx="20" cy="16" r="2"/><path d="M9 10a5 5 0 0 1 5 5v3.5a3.5 3.5 0 0 1-6.84 1.05Q6.52 17.5 4.46 16.85A3.5 3.5 0 0 1 5.5 10Z"/>',
+  store:'<path d="m2 7 4.4-4.4A2 2 0 0 1 7.8 2h8.3a2 2 0 0 1 1.5.6L22 7"/><path d="M4 11v9a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-9"/><path d="M2 7h20"/><path d="M12 12h4v6h-4z"/>'
 };
 function star(filled){
   var c = filled ? "#E8A93B" : "#D8D4CC";
   return '<svg width="15" height="15" viewBox="0 0 24 24" fill="'+(filled?c:"none")+'" stroke="'+c+'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>';
 }
 
-/* ---------- data ---------- */
-var CATEGORIES = [
-  {key:"Groceries",  label:"Groceries",         icon:"basket",   tint:"#EAF4EC", ink:"#2F6E4F"},
-  {key:"Cleaning",   label:"Cleaning supplies", icon:"sparkles", tint:"#EAF1F7", ink:"#2E5E86"},
-  {key:"Toiletries", label:"Toiletries",        icon:"droplet",  tint:"#F1ECF7", ink:"#6A4E93"},
-  {key:"Pet",        label:"Pet supplies",      icon:"paw",      tint:"#FBF0E7", ink:"#B06A2E"}
-];
-function catInfo(k){ for(var i=0;i<CATEGORIES.length;i++){ if(CATEGORIES[i].key===k) return CATEGORIES[i]; } return CATEGORIES[0]; }
+/* ---------- suggestion seeds (she can type anything else) ---------- */
+var TYPES    = ["Groceries", "Toiletries", "Pet supplies", "Cleaning supplies"];
+var SUBTYPES = ["Dairy", "Produce", "Meat", "Bakery", "Frozen", "Pantry", "Snacks", "Beverages", "Household", "Personal care"];
+var STORES   = ["Costco", "Target", "Walmart", "Safeway", "Trader Joe's", "Amazon"];
 
+function typeStyle(t){
+  var k = (t || "").toLowerCase();
+  if(k.indexOf("grocer") > -1) return {tint:"#EAF4EC", ink:"#2F6E4F", icon:"basket"};
+  if(k.indexOf("toilet") > -1) return {tint:"#F1ECF7", ink:"#6A4E93", icon:"droplet"};
+  if(k.indexOf("pet")    > -1) return {tint:"#FBF0E7", ink:"#B06A2E", icon:"paw"};
+  if(k.indexOf("clean")  > -1) return {tint:"#EAF1F7", ink:"#2E5E86", icon:"sparkles"};
+  return {tint:"#F1F0EA", ink:"#54574F", icon:"box"};
+}
+
+/* ---------- data ---------- */
 var KEY = "homestock.items";
+var CUSTOM_KEY = "homestock.customVals";
 var items = load();
-function load(){ try{ return JSON.parse(localStorage.getItem(KEY)) || []; }catch(e){ return []; } }
+var customVals = loadCustom();
+var groupDim = "type";
+var storeFilter = "__all";
+var groceryData = null;
+var addType = "", addSubtype = "", addStore = "";
+
+function load(){
+  try{
+    var raw = JSON.parse(localStorage.getItem(KEY)) || [];
+    return raw.map(function(it){
+      if(it.type === undefined && it.category !== undefined) it.type = it.category;
+      if(it.type === undefined) it.type = "";
+      if(it.subtype === undefined) it.subtype = "";
+      if(it.store === undefined) it.store = "";
+      if(it.min === undefined) it.min = 1;
+      delete it.category;
+      return it;
+    });
+  }catch(e){ return []; }
+}
 function save(){ try{ localStorage.setItem(KEY, JSON.stringify(items)); }catch(e){} }
+function loadCustom(){ try{ var c = JSON.parse(localStorage.getItem(CUSTOM_KEY)) || {}; return {type:c.type||[], subtype:c.subtype||[], store:c.store||[]}; }catch(e){ return {type:[], subtype:[], store:[]}; } }
+function saveCustom(){ try{ localStorage.setItem(CUSTOM_KEY, JSON.stringify(customVals)); }catch(e){} }
+function minOf(it){ var m = parseInt(it.min, 10); return isNaN(m) || m < 0 ? 1 : m; }
 
 function esc(s){ return String(s).replace(/[&<>"']/g, function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]; }); }
 
+function distinct(dim){
+  var seen = {}, out = [];
+  items.forEach(function(it){ var v = (it[dim]||"").trim(); if(v && !seen[v.toLowerCase()]){ seen[v.toLowerCase()] = 1; out.push(v); } });
+  return out;
+}
+function unionOptions(seeds, dim){
+  var seen = {}, out = [];
+  seeds.concat(distinct(dim)).forEach(function(v){ var lk = v.toLowerCase(); if(!seen[lk]){ seen[lk] = 1; out.push(v); } });
+  return out;
+}
+function orderedKeys(keys, seeds){
+  var lower = seeds.map(function(s){ return s.toLowerCase(); });
+  return keys.slice().sort(function(a, b){
+    if(a === "Unspecified") return 1;
+    if(b === "Unspecified") return -1;
+    var ia = lower.indexOf(a.toLowerCase()), ib = lower.indexOf(b.toLowerCase());
+    if(ia !== -1 && ib !== -1) return ia - ib;
+    if(ia !== -1) return -1;
+    if(ib !== -1) return 1;
+    return a.toLowerCase() < b.toLowerCase() ? -1 : 1;
+  });
+}
+
+/* every known value for a dimension: seeds + values in use + custom-added */
+function allValues(dim, seeds){
+  var seen = {}, out = [];
+  seeds.concat(distinct(dim)).concat(customVals[dim] || []).forEach(function(v){
+    v = String(v).trim(); var lk = v.toLowerCase();
+    if(v && !seen[lk]){ seen[lk] = 1; out.push(v); }
+  });
+  return out;
+}
+function placeholder(dim){ return dim === "type" ? "— Type —" : (dim === "subtype" ? "— Subtype —" : "— Store —"); }
+function setAddVar(dim, v){ if(dim === "type") addType = v; else if(dim === "subtype") addSubtype = v; else addStore = v; }
+
+function onAddSelectChange(id, dim, seeds){
+  var el = document.getElementById(id);
+  if(el.value === "__new"){
+    var v = (window.prompt("Add a new " + dim + ":") || "").trim();
+    if(v){
+      var known = seeds.concat(distinct(dim)).concat(customVals[dim] || []).map(function(x){ return String(x).toLowerCase(); });
+      if(known.indexOf(v.toLowerCase()) === -1){ customVals[dim].push(v); saveCustom(); }
+      setAddVar(dim, v);
+    }
+    // if cancelled/blank, fall back to whatever was chosen before
+    renderAddSelects();
+  } else {
+    setAddVar(dim, el.value);
+  }
+}
+
 /* ---------- one-time chrome ---------- */
 document.getElementById("logo").innerHTML = svg(ICON.box, {size:22, sw:2.2});
-document.getElementById("tab-inv").innerHTML = svg(ICON.box, {size:17}) + " Inventory";
-document.getElementById("tab-rec").innerHTML = svg(ICON.chef, {size:17}) + " What can I cook?";
-document.getElementById("addBtn").innerHTML = svg(ICON.plus, {size:18}) + " Add";
-(function(){
-  var sel = document.getElementById("itemCat");
-  CATEGORIES.forEach(function(c){ var o=document.createElement("option"); o.value=c.key; o.textContent=c.label; sel.appendChild(o); });
-})();
+document.getElementById("tab-inv").innerHTML = svg(ICON.box, {size:16}) + " Inventory";
+document.getElementById("tab-gro").innerHTML = svg(ICON.cart, {size:16}) + " Grocery list";
+document.getElementById("tab-rec").innerHTML = svg(ICON.chef, {size:16}) + " Cook";
+document.getElementById("addBtn").innerHTML = svg(ICON.plus, {size:18}) + " Add item";
+document.getElementById("makeListBtn").innerHTML = svg(ICON.cart, {size:18}) + " Make grocery list";
+document.getElementById("exportBtn").innerHTML = svg(ICON.download, {size:16}) + " Export to Excel";
 
-/* ---------- inventory render ---------- */
+/* ---------- render helpers ---------- */
+function setSelect(id, dim, seeds, current){
+  var vals = orderedKeys(allValues(dim, seeds), seeds);
+  var html = '<option value="">' + placeholder(dim) + '</option>';
+  vals.forEach(function(v){
+    var sel = v.toLowerCase() === (current || "").toLowerCase() ? " selected" : "";
+    html += '<option value="'+esc(v)+'"'+sel+'>'+esc(v)+'</option>';
+  });
+  html += '<option value="__new">+ Add new…</option>';
+  document.getElementById(id).innerHTML = html;
+}
+function renderAddSelects(){
+  setSelect("itemType", "type", TYPES, addType);
+  setSelect("itemSubtype", "subtype", SUBTYPES, addSubtype);
+  setSelect("itemStore", "store", STORES, addStore);
+}
+
+function renderStoreFilter(){
+  var stores = orderedKeys(allValues("store", STORES), STORES);
+  var hasNoStore = items.some(function(it){ return !((it.store||"").trim()); });
+  var valid = ["__all"].concat(stores);
+  if(hasNoStore) valid.push("__none");
+  if(valid.indexOf(storeFilter) === -1) storeFilter = "__all";
+  var html = '<option value="__all">All stores</option>';
+  stores.forEach(function(s){ html += '<option value="'+esc(s)+'">'+esc(s)+'</option>'; });
+  if(hasNoStore) html += '<option value="__none">No store set</option>';
+  var sel = document.getElementById("storeFilter");
+  sel.innerHTML = html;
+  sel.value = storeFilter;
+}
+
 function renderStats(){
-  var total = items.reduce(function(s,i){ return s+i.count; }, 0);
-  var low = items.filter(function(i){ return i.count>0 && i.count<=1; }).length;
+  var total = items.reduce(function(s,i){ return s + i.count; }, 0);
+  var low = items.filter(function(i){ return i.count > 0 && i.count < minOf(i); }).length;
   var el = document.getElementById("stats");
-  if(total===0){ el.innerHTML=""; return; }
+  if(items.length === 0){ el.innerHTML = ""; return; }
   var h = '<div class="stat"><b>'+total+'</b><span>on hand</span></div>';
-  if(low>0) h += '<div class="stat low"><b>'+low+'</b><span>running low</span></div>';
+  if(low > 0) h += '<div class="stat low"><b>'+low+'</b><span>running low</span></div>';
   el.innerHTML = h;
 }
 
-function renderInventory(){
-  var root = document.getElementById("inventoryList");
-  var html = "";
-  if(items.length===0){
-    html = '<div class="empty">'+svg(ICON.utensils,{size:30,sw:1.6})+
-      '<p>Nothing tracked yet.</p><span>Add your first item above to start building the list.</span></div>';
-    root.innerHTML = html; renderStats(); return;
+function metaChips(it, dim){
+  var out = [];
+  if(dim !== "type" && it.type){
+    var s = typeStyle(it.type);
+    out.push('<span class="mchip" style="background:'+s.tint+';color:'+s.ink+'">'+esc(it.type)+'</span>');
   }
-  CATEGORIES.forEach(function(c){
-    var list = items.filter(function(i){ return i.category===c.key; });
-    if(list.length===0) return;
-    html += '<section class="section"><div class="sec-head">'+
-      '<span class="chip" style="background:'+c.tint+';color:'+c.ink+'">'+svg(ICON[c.icon],{size:16})+' '+esc(c.label)+'</span>'+
+  if(dim !== "subtype" && it.subtype) out.push('<span class="mchip">'+esc(it.subtype)+'</span>');
+  if(dim !== "store" && it.store)     out.push('<span class="mchip">'+esc(it.store)+'</span>');
+  return out.length ? '<div class="meta">'+out.join("")+'</div>' : "";
+}
+
+function groupHeader(dim, key){
+  var display = key;
+  if(key === "Unspecified") display = dim === "store" ? "No store set" : (dim === "subtype" ? "No subtype" : "No type");
+  if(dim === "type"){
+    var s = typeStyle(key === "Unspecified" ? "" : key);
+    return '<span class="chip" style="background:'+s.tint+';color:'+s.ink+'">'+svg(ICON[s.icon],{size:16})+' '+esc(display)+'</span>';
+  }
+  var icon = dim === "store" ? "store" : "tag";
+  return '<span class="chip neutral">'+svg(ICON[dim === "store" ? "store" : "box"],{size:15})+' '+esc(display)+'</span>';
+}
+
+function renderInventory(){
+  renderAddSelects();
+  renderStoreFilter();
+  renderStats();
+
+  document.getElementById("controls").classList.toggle("hidden", items.length === 0);
+  var root = document.getElementById("inventoryList");
+
+  if(items.length === 0){
+    root.innerHTML = '<div class="empty">'+svg(ICON.utensils,{size:30,sw:1.6})+
+      '<p>Nothing tracked yet.</p><span>Add your first item above to start building the list.</span></div>';
+    return;
+  }
+
+  var visible = items.filter(function(it){
+    if(storeFilter === "__all") return true;
+    if(storeFilter === "__none") return !((it.store||"").trim());
+    return (it.store||"") === storeFilter;
+  });
+  if(visible.length === 0){
+    var flabel = storeFilter === "__none" ? "items with no store set" : storeFilter;
+    root.innerHTML = '<div class="empty">'+svg(ICON.store,{size:30,sw:1.6})+
+      '<p>Nothing here for '+esc(flabel)+'.</p><span>Pick a different store above, or set this store on some items.</span></div>';
+    return;
+  }
+
+  var buckets = {};
+  visible.forEach(function(it){
+    var k = (it[groupDim] || "").trim() || "Unspecified";
+    (buckets[k] = buckets[k] || []).push(it);
+  });
+  var seeds = groupDim === "type" ? TYPES : (groupDim === "subtype" ? SUBTYPES : STORES);
+  var keys = orderedKeys(Object.keys(buckets), seeds);
+
+  var html = "";
+  keys.forEach(function(k){
+    var list = buckets[k];
+    html += '<section class="section"><div class="sec-head">'+groupHeader(groupDim, k)+
       '<span class="count">'+list.length+'</span></div><ul class="list">';
     list.forEach(function(i){
-      var tag = i.count===0 ? '<span class="tag">out</span>' : (i.count===1 ? '<span class="tag low">low</span>' : '');
+      var min = minOf(i);
+      var tag = i.count === 0 ? '<span class="tag">out</span>' : (i.count < min ? '<span class="tag low">low</span>' : '');
       html += '<li class="item'+(i.count===0?' out':'')+'" data-id="'+i.id+'">'+
-        '<span class="name">'+esc(i.name)+' '+tag+'</span>'+
-        '<div class="stepper">'+
-          '<button data-act="dec" aria-label="one less">'+svg(ICON.minus,{size:16})+'</button>'+
-          '<span class="num">'+i.count+'</span>'+
-          '<button data-act="inc" aria-label="one more">'+svg(ICON.plus,{size:16})+'</button>'+
+        '<div class="item-main"><span class="name">'+esc(i.name)+' '+tag+'</span>'+metaChips(i, groupDim)+'</div>'+
+        '<div class="item-controls">'+
+          '<div class="min-box"><label>Min</label><input class="minput" type="number" min="0" value="'+min+'" data-min="1" aria-label="minimum for '+esc(i.name)+'"></div>'+
+          '<div class="stepper">'+
+            '<button data-act="dec" aria-label="one less">'+svg(ICON.minus,{size:16})+'</button>'+
+            '<span class="num">'+i.count+'</span>'+
+            '<button data-act="inc" aria-label="one more">'+svg(ICON.plus,{size:16})+'</button>'+
+          '</div>'+
+          '<button class="del" data-act="del" aria-label="remove item">'+svg(ICON.trash,{size:16})+'</button>'+
         '</div>'+
-        '<button class="del" data-act="del" aria-label="remove item">'+svg(ICON.trash,{size:16})+'</button>'+
       '</li>';
     });
     html += '</ul></section>';
   });
   root.innerHTML = html;
-  renderStats();
 }
 
 /* ---------- inventory actions ---------- */
 function addItem(){
-  var input = document.getElementById("itemName");
-  var name = input.value.trim();
+  var nameEl = document.getElementById("itemName");
+  var name = nameEl.value.trim();
   if(!name) return;
-  var cat = document.getElementById("itemCat").value;
-  var existing = items.filter(function(i){ return i.name.toLowerCase()===name.toLowerCase() && i.category===cat; })[0];
-  if(existing){ existing.count += 1; }
-  else{ items.push({ id: Date.now()+"-"+Math.random().toString(36).slice(2,6), name:name, category:cat, count:1 }); }
-  input.value = ""; input.focus();
+  var type = addType.trim();
+  var subtype = addSubtype.trim();
+  var store = addStore.trim();
+  var min = parseInt(document.getElementById("itemMin").value, 10);
+  if(isNaN(min) || min < 0) min = 1;
+
+  var match = items.filter(function(i){
+    return i.name.toLowerCase() === name.toLowerCase() &&
+      (i.type||"").toLowerCase() === type.toLowerCase() &&
+      (i.subtype||"").toLowerCase() === subtype.toLowerCase() &&
+      (i.store||"").toLowerCase() === store.toLowerCase();
+  })[0];
+
+  if(match){ match.count += 1; }
+  else{ items.push({ id: Date.now()+"-"+Math.random().toString(36).slice(2,6), name:name, type:type, subtype:subtype, store:store, min:min, count:1 }); }
+
+  nameEl.value = ""; nameEl.focus();
   save(); renderInventory();
 }
 
 document.getElementById("addBtn").addEventListener("click", addItem);
-document.getElementById("itemName").addEventListener("keydown", function(e){ if(e.key==="Enter") addItem(); });
+document.getElementById("itemName").addEventListener("keydown", function(e){ if(e.key === "Enter") addItem(); });
+document.getElementById("itemMin").addEventListener("keydown", function(e){ if(e.key === "Enter") addItem(); });
+document.getElementById("itemType").addEventListener("change", function(){ onAddSelectChange("itemType","type",TYPES); });
+document.getElementById("itemSubtype").addEventListener("change", function(){ onAddSelectChange("itemSubtype","subtype",SUBTYPES); });
+document.getElementById("itemStore").addEventListener("change", function(){ onAddSelectChange("itemStore","store",STORES); });
+
+document.getElementById("groupBy").addEventListener("change", function(e){ groupDim = e.target.value; renderInventory(); });
+document.getElementById("storeFilter").addEventListener("change", function(e){ storeFilter = e.target.value; renderInventory(); });
 
 document.getElementById("inventoryList").addEventListener("click", function(e){
   var btn = e.target.closest("button[data-act]");
   if(!btn) return;
   var li = e.target.closest("li[data-id]");
   var id = li.getAttribute("data-id");
-  var it = items.filter(function(i){ return i.id===id; })[0];
+  var it = items.filter(function(i){ return i.id === id; })[0];
   if(!it) return;
   var act = btn.getAttribute("data-act");
-  if(act==="inc") it.count += 1;
-  else if(act==="dec") it.count = Math.max(0, it.count-1);
-  else if(act==="del") items = items.filter(function(i){ return i.id!==id; });
+  if(act === "inc") it.count += 1;
+  else if(act === "dec") it.count = Math.max(0, it.count - 1);
+  else if(act === "del") items = items.filter(function(i){ return i.id !== id; });
   save(); renderInventory();
+});
+
+document.getElementById("inventoryList").addEventListener("change", function(e){
+  var inp = e.target.closest("input.minput");
+  if(!inp) return;
+  var li = e.target.closest("li[data-id]");
+  var it = items.filter(function(i){ return i.id === li.getAttribute("data-id"); })[0];
+  if(!it) return;
+  var v = parseInt(inp.value, 10);
+  if(isNaN(v) || v < 0) v = 0;
+  it.min = v; save(); renderInventory();
 });
 
 /* ---------- tabs ---------- */
 function setTab(t){
-  document.getElementById("tab-inv").classList.toggle("on", t==="inventory");
-  document.getElementById("tab-rec").classList.toggle("on", t==="recipes");
-  document.getElementById("view-inventory").classList.toggle("hidden", t!=="inventory");
-  document.getElementById("view-recipes").classList.toggle("hidden", t!=="recipes");
-  if(t==="recipes") renderRecipeIntro();
+  [["inventory","tab-inv","view-inventory"],["grocery","tab-gro","view-grocery"],["recipes","tab-rec","view-recipes"]].forEach(function(x){
+    document.getElementById(x[1]).classList.toggle("on", t === x[0]);
+    document.getElementById(x[2]).classList.toggle("hidden", t !== x[0]);
+  });
+  if(t === "recipes") renderRecipeIntro();
+  if(t === "grocery") showGroceryTab();
 }
 document.getElementById("tab-inv").addEventListener("click", function(){ setTab("inventory"); });
+document.getElementById("tab-gro").addEventListener("click", function(){ setTab("grocery"); });
 document.getElementById("tab-rec").addEventListener("click", function(){ setTab("recipes"); });
 
+/* ---------- grocery list ---------- */
+function buildGrocery(){
+  var low = items.filter(function(it){ return it.count < minOf(it); });
+  var byStore = {};
+  low.forEach(function(it){ var sk = (it.store||"").trim() || "Unspecified"; (byStore[sk] = byStore[sk] || []).push(it); });
+  return orderedKeys(Object.keys(byStore), STORES).map(function(sk){
+    var byType = {};
+    byStore[sk].forEach(function(it){ var tk = (it.type||"").trim() || "Unspecified"; (byType[tk] = byType[tk] || []).push(it); });
+    return {
+      store: sk,
+      types: orderedKeys(Object.keys(byType), TYPES).map(function(tk){
+        return { type: tk, items: byType[tk].map(function(it){ return { name: it.name, need: minOf(it) - it.count }; }) };
+      })
+    };
+  });
+}
+
+function groceryHtml(data){
+  var html = "";
+  data.forEach(function(s){
+    var storeDisp = s.store === "Unspecified" ? "No store set" : s.store;
+    var total = s.types.reduce(function(n,t){ return n + t.items.length; }, 0);
+    html += '<section class="gstore"><div class="sec-head"><span class="chip neutral">'+svg(ICON.store,{size:15})+' '+esc(storeDisp)+
+      '</span><span class="count">'+total+' item'+(total===1?'':'s')+'</span></div>';
+    s.types.forEach(function(t){
+      var typeDisp = t.type === "Unspecified" ? "No type" : t.type;
+      var st = typeStyle(t.type === "Unspecified" ? "" : t.type);
+      html += '<div class="gtype"><span class="chip" style="background:'+st.tint+';color:'+st.ink+'">'+svg(ICON[st.icon],{size:14})+' '+esc(typeDisp)+'</span></div>';
+      html += '<table class="gtable"><thead><tr><th>Item</th><th>Need</th></tr></thead><tbody>';
+      t.items.forEach(function(i){ html += '<tr><td>'+esc(i.name)+'</td><td class="need">'+i.need+'</td></tr>'; });
+      html += '</tbody></table>';
+    });
+    html += '</section>';
+  });
+  return html;
+}
+
+function renderGrocery(){
+  groceryData = buildGrocery();
+  var root = document.getElementById("groceryList");
+  var exp = document.getElementById("exportBtn");
+  if(groceryData.length === 0){
+    root.innerHTML = '<div class="empty">'+svg(ICON.check,{size:30,sw:1.8})+'<p>You\'re fully stocked.</p><span>Nothing is below its minimum right now.</span></div>';
+    exp.disabled = true;
+    return;
+  }
+  exp.disabled = false;
+  root.innerHTML = groceryHtml(groceryData);
+}
+
+function showGroceryTab(){
+  var exp = document.getElementById("exportBtn");
+  var root = document.getElementById("groceryList");
+  if(groceryData === null){
+    root.innerHTML = '<div class="empty">'+svg(ICON.cart,{size:30,sw:1.6})+'<p>Ready when you are.</p><span>Tap “Make grocery list” to gather everything below its minimum.</span></div>';
+    exp.disabled = true;
+  } else {
+    renderGrocery();
+  }
+}
+document.getElementById("makeListBtn").addEventListener("click", renderGrocery);
+
+/* ---------- Excel / CSV export ---------- */
+function safeSheetName(name, used){
+  var n = String(name).replace(/[\\\/\?\*\[\]:]/g, " ").trim().slice(0,31) || "Sheet";
+  var base = n, k = 2;
+  while(used[n.toLowerCase()]){ n = (base.slice(0,27)+" "+k).slice(0,31); k++; }
+  used[n.toLowerCase()] = 1;
+  return n;
+}
+function exportGrocery(){
+  var data = groceryData;
+  if(!data || !data.length) return;
+
+  if(typeof XLSX !== "undefined"){
+    var wb = XLSX.utils.book_new(), used = {};
+    data.forEach(function(s){
+      var storeDisp = s.store === "Unspecified" ? "No store" : s.store;
+      var rows = [[storeDisp], []];
+      s.types.forEach(function(t){
+        rows.push([t.type === "Unspecified" ? "No type" : t.type]);
+        rows.push(["Item", "Need"]);
+        t.items.forEach(function(i){ rows.push([i.name, i.need]); });
+        rows.push([]);
+      });
+      var ws = XLSX.utils.aoa_to_sheet(rows);
+      ws["!cols"] = [{wch:30},{wch:8}];
+      XLSX.utils.book_append_sheet(wb, ws, safeSheetName(storeDisp, used));
+    });
+    XLSX.writeFile(wb, "HomeStock grocery list.xlsx");
+    return;
+  }
+
+  // fallback: CSV (opens in Excel) if the spreadsheet library didn't load
+  var lines = [["Store","Type","Item","Need"]];
+  data.forEach(function(s){
+    var sd = s.store === "Unspecified" ? "No store" : s.store;
+    s.types.forEach(function(t){
+      var td = t.type === "Unspecified" ? "No type" : t.type;
+      t.items.forEach(function(i){ lines.push([sd, td, i.name, String(i.need)]); });
+    });
+  });
+  var csv = lines.map(function(r){ return r.map(function(c){ c = String(c); return /[",\n]/.test(c) ? '"'+c.replace(/"/g,'""')+'"' : c; }).join(","); }).join("\r\n");
+  var blob = new Blob([csv], {type:"text/csv;charset=utf-8;"});
+  var url = URL.createObjectURL(blob), a = document.createElement("a");
+  a.href = url; a.download = "HomeStock grocery list.csv";
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+document.getElementById("exportBtn").addEventListener("click", exportGrocery);
+
 /* ---------- recipes ---------- */
-function groceries(){ return items.filter(function(i){ return i.category==="Groceries" && i.count>0; }); }
+function groceries(){ return items.filter(function(i){ return (i.type||"").toLowerCase().indexOf("grocer") > -1 && i.count > 0; }); }
 
 function renderRecipeIntro(){
   var g = groceries();
   var line = document.getElementById("haveLine");
-  if(g.length>0){ line.className="have"; line.innerHTML = "Cooking with: " + esc(g.map(function(x){return x.name;}).join(", ")); }
-  else{ line.className="have muted"; line.textContent = "Add some grocery items first, then come back here."; }
+  if(g.length > 0){ line.className = "have"; line.innerHTML = "Cooking with: " + esc(g.map(function(x){ return x.name; }).join(", ")); }
+  else{ line.className = "have muted"; line.textContent = "Add some items with the Type set to Groceries, then come back here."; }
   var btn = document.getElementById("findBtn");
-  btn.disabled = g.length===0;
+  btn.disabled = g.length === 0;
   btn.innerHTML = svg(ICON.search,{size:18}) + " Find meals";
 }
-
 function renderStars(rating){
-  var full = Math.round(Number(rating)||0);
+  var full = Math.round(Number(rating) || 0);
   var h = '<span class="stars">';
-  for(var n=1;n<=5;n++) h += star(n<=full);
+  for(var n = 1; n <= 5; n++) h += star(n <= full);
   return h + '</span>';
 }
-
 function showRecipeError(msg){
   document.getElementById("recipeError").innerHTML = '<div class="error">'+svg(ICON.x,{size:16})+' '+esc(msg)+'</div>';
 }
-
 function renderRecipes(recipes){
   var root = document.getElementById("recipeList");
   var html = "";
@@ -322,7 +710,7 @@ function renderRecipes(recipes){
 
 document.getElementById("findBtn").addEventListener("click", async function(){
   var g = groceries();
-  if(g.length===0) return;
+  if(g.length === 0) return;
   var btn = document.getElementById("findBtn");
   document.getElementById("recipeError").innerHTML = "";
   document.getElementById("recipeList").innerHTML = "";
